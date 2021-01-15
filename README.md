@@ -10,9 +10,7 @@ df = pd.read_excel('order2020.xlsx',index_col='id')  //读取数据文件
  - pd.set_option('display.width',None)  //设置数据展示宽度，解决列展示出现省略号问题
  - print(df.head()) //默认读取前5行记录
  - print(df.tail(10)) //读取后10行的数据，无参默认为5行
-
-picture
-
+![001](https://github.com/Monster-hash/python-e-commerce-data-analyse/blob/main/picture/001.png)
 ## 1.2 提取数据
 
 ### 1.2.1根据业务需要提取数据,提取2020年数据
@@ -34,9 +32,7 @@ df.drop(index=df[df.orderTime < startTime].index, inplace=True)
 df[df.orderTime > endTime]  
 df.drop(index=df[df.orderTime > endTime].index, inplace=True)  
 ```
-
-picture
-
+![002](https://github.com/Monster-hash/python-e-commerce-data-analyse/blob/main/picture/002.png)
 ### 1.2.2提取数据时,处理与业务流程不符合数据、支付时间间隔过长数据
 ```
 # 1.下单时间与支付时间间隔 
@@ -47,9 +43,7 @@ df[df.payinterval>1800]
 df.drop(index=df[df.payinterval>1800].index, inplace=True)
 df.drop(index=df[df.payinterval<0].index, inplace=True)
 ```
-
-picture
-
+![003](https://github.com/Monster-hash/python-e-commerce-data-analyse/blob/main/picture/003.png)
 ### 1.2.3提取数据时,处理与业务流程不符合数据,订单金额与支付金额为负
 ```
 # 1.订单金额为负  
@@ -60,3 +54,5 @@ df[df.payment < 0]
 df.drop(index=df[df.orderAmount < 0].index, inplace=True) #删除负订单金额  
 df.drop(index=df[df.payment < 0].index, inplace=True) #删除负付款金额
 ```
+![004](https://github.com/Monster-hash/python-e-commerce-data-analyse/blob/main/picture/004.png)
+
