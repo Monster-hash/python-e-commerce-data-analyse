@@ -1,4 +1,23 @@
+# 分析思路
+1. 读取数据
+2. 数据处理
+3. 数据分析及可视化
+4. 数据分析报告
+
 # 一.读取数据
+| EN | CN |
+|--|--|
+| id | 编号 |
+| orderID | 订单编号 |
+| userID | 用户编号 |
+| goodsID | 商品编号 |
+| orderAmount | 订单金额 |
+| payment | 支付金额 |
+| chanelID | 渠道编号 |
+| platformType | 平台类型 |
+| orderTime | 下单时间 |
+| payTime | 支付时间 |
+| chargeback | 退单拒付 |
 
 ## 1.1 加载数据文件
 ```
@@ -450,3 +469,123 @@ plt.savefig('t5.png')
 ```
 ![t5](https://github.com/Monster-hash/python-e-commerce-data-analyse/blob/main/picture/t5.png)
 
+## 3.8用户行为,客户RFM模型
+![RFM.png](https://github.com/Monster-hash/python-e-commerce-data-analyse/blob/main/picture/RFM.png)
+
+###RFM均值算法总结:整体思路如下
+
+ 1. 获取到相应数据
+ 2. 改变整个数据,将CustomerID作为索引
+ 3. 添加orders字段,每一单的orders为1
+ 4. 计算每位用户的OrderDate, orders, Sales(OrderDate 应该取用户最后一次购买日期, orders求和, Sales求和)
+ 5. 将用户OrderDate, orders, Sales转换成R值,F值,M值
+ 6. 将每位用户的R值,F值,M值与整体的平均值进行比较,赋0或者1, 并给用户标记用户类型
+ 7. 对用户RFM模型进行分析
+ 
+
+```
+from PythonDataAnalyse import df  
+#RFM根据用户的活跃程度，频率，贡献程度 分类  
+  
+#1.备份整个数据  
+customdf = df.copy()  
+  
+#2.删除退单  
+customdf.drop(index=df[df.chargeback == '是'].index, inplace=True)  
+customdf  
+  
+#3.将userID设置为索引  
+customdf.set_index('userID',drop=True,inplace=True)  
+  
+#4.将原始订单中订单量全部置为1  
+customdf['orders'] = 1  
+customdf  
+  
+#5.数据透视  
+rfmdf = customdf.pivot_table(index=['userID'],  
+  values=['orderAmount','orderDate','orders'],  
+  aggfunc={'orderDate':'max',  
+  'orderAmount':'sum',  
+  'orders':'sum'})  
+  
+#6.处理RFM模型中的R  
+rfmdf['R'] = (rfmdf.orderDate.max()-rfmdf.orderDate).dt.days  
+  
+#7.处理RFM模型中的F与M  
+rfmdf.rename(columns={'orderAmount':'M','orders':'F'},inplace=True)  
+rfmdf.head()  
+print(rfmdf.describe())
+```
+输出结果：
+```
+"D:\Python 3.7.0\python.exe" D:/Python电商平台数据分析/RFM.py
+                  M             F             R
+count  70493.000000  70493.000000  70493.000000
+mean    1332.341220      1.270424    149.025761
+std     1318.826745      0.548193     99.848267
+min        6.100000      1.000000      0.000000
+25%      494.850000      1.000000     60.000000
+50%      843.840000      1.000000    138.000000
+75%     1762.990000      1.000000    222.000000
+max    32623.050000      7.000000    365.000000
+
+Process finished with exit code 0
+```
+```
+#1. 对用户分类，设置标签
+def rfm_func(x):
+    level = x.apply(lambda x: "1" if x >= 0 else '0')
+    label = level.R + level.F + level.M
+    d = {
+        '011':'重要价值客户',
+        '111':'重要唤回客户',
+        '001':'重要深耕客户',
+        '101':'重要挽留客户',
+        '010':'潜力客户',
+        '110':'一般维持客户',
+        '000':'新客户',
+        '100':'流失客户'
+    }
+    result = d[label]
+    return result
+
+#2.根据模型打标签
+rfmdf['label'] = rfmdf[['R','F','M']].apply(lambda x:x-x.mean()).apply(rfm_func,axis=1)
+
+#3.分组聚合
+rfmdf_res = rfmdf.groupby('label').count()
+print(rfmdf_res)
+```
+输出结果：
+```
+"D:\Python 3.7.0\python.exe" D:/Python电商平台数据分析/RFM.py
+            M  orderDate      F      R
+label                                 
+一般维持客户   1352       1352   1352   1352
+新客户     19910      19910  19910  19910
+流失客户    22168      22168  22168  22168
+潜力客户     3844       3844   3844   3844
+重要价值客户   8080       8080   8080   8080
+重要唤回客户   2641       2641   2641   2641
+重要挽留客户   6847       6847   6847   6847
+重要深耕客户   5651       5651   5651   5651
+
+Process finished with exit code 0
+```
+##各类型客户图
+```
+
+import matplotlib.pyplot as plt  
+from matplotlib.font_manager import FontProperties  
+  
+plt.rcParams['font.sans-serif'] = ['SimHei']  
+plt.rcParams['font.serif'] = ['SimHei']  
+plt.rcParams['axes.unicode_minus'] = False  
+  
+my_font =FontProperties(fname='C:/Windows/Fonts/Deng.ttf',size=12,)#1.绘制图形
+rfmdf.label.value_counts().plot.bar(figsize=(20,9))
+#2.设置X轴 
+plt.xticks(rotation=0,fontproperties=my_font)
+plt.savefig('t6.png')
+```
+![t6.png](https://github.com/Monster-hash/python-e-commerce-data-analyse/blob/main/picture/t6.png)
